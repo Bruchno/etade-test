@@ -11,6 +11,12 @@ use yii\filters\auth\CompositeAuth;
 use yii\filters\auth\HttpBasicAuth;
 use yii\filters\auth\HttpBearerAuth;
 use yii\filters\auth\QueryParamAuth;
+use app\models\FactoryEvent;
+
+
+interface Save {
+    public function insert($date);
+}
 
 class ApiController extends Controller{
     
@@ -22,12 +28,12 @@ class ApiController extends Controller{
     {
 		
         return [
-		   'authenticator' => [
+		   /*'authenticator' => [
 			     'class' => HttpBasicAuth::className(),
 				 'class' => HttpBearerAuth::className(),
 				 'class' => QueryParamAuth::className(),
 				 
-			],
+			],*/
             'access' => [
                 'class' => AccessControl::className(),
                 'only' => ['logout'],
@@ -42,34 +48,32 @@ class ApiController extends Controller{
            
         ];
     }
-
-   
-    
 	
 	public function actionV1()
-    {
-	   $this->enableCsrfValidation = false;
-	   $request = Yii::$app->request;
-       $event = $request->get('event');	
-	   $order = $request->post('order');
-	   switch ($event){
-         case 'new_order': {
-		  
-			Yii::$app->mailer->compose($event, ['order' => $order])
-    	   ->setFrom(Yii::$app->params['fromEmail'])
-		   ->setTo(Yii::$app->params['adminEmail'])
-		   ->setSubject('Tema2')
-		   ->send();
-		   break;
-           }
-		   default: {
-			Yii::$app->mailer->compose('default')
-    	   ->setFrom(Yii::$app->params['fromEmail'])
-		   ->setTo(Yii::$app->params['adminEmail'])
-		   ->setSubject('Haker')
-		   ->send();
-           }
-		}
-    }
-     
+        {
+              $this->enableCsrfValidation = false;          
+              $request = Yii::$app->request;
+              $event = $request->get('event');
+              $data = $request->post();
+              $event = $this->changeEvent($event);
+              $factory = new FactoryEvent();         
+                   $order = $factory->getEventModel($event);                
+                   if($order != null){
+                   $order->event_hendler($event, 128);
+              } else {
+                  echo 'Not found!!!';
+              }	    
+        } 
+        public function changeEvent($event){
+            $arr_str = explode('_', $event);
+            $event_str = '';
+            foreach($arr_str as $work){
+                  $first = mb_substr($work, 0, 1);
+                  $last = mb_substr($work, 1);
+                  $first = strtoupper($first);
+                  $last = strtolower($last);
+                  $event_str .= $first.$last;
+              }
+            return $event_str;
+        }
 }
